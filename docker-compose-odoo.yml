@@ -1,0 +1,29 @@
+version: "3.7"
+
+networks:
+  odoo:
+    name: odoo-${ODOO_TAG:-fb-11-pipe}
+    external: true
+
+services:
+  odoo:
+#    build:
+#      context: code/.
+#      dockerfile: ../docker/.
+    image: cetmix/${ODOO_IMAGE:-odoo}:${ODOO_TAG:-fb-11-pipe}
+    container_name: odoo-${ODOO_TAG:-fb-11-pipe}
+    environment:
+      HOST:     postgres
+      PORT:     5432
+      USER:     ${POSTGRES_USER:-odoo}
+      PASSWORD: ${POSTGRES_PASSWORD:-odoo}
+    networks:
+      - odoo
+    ports:
+      - "8069"
+    volumes:
+      - ${ODOO_DATA:-~/cetmix/data}/extra-addons:/mnt/extra-addons
+      - ${ODOO_DATA:-~/cetmix/data}/config:/etc/odoo
+      - ${ODOO_DATA:-~/cetmix/data}/data:/var/lib/odoo
+      - /etc/localtime:/etc/localtime
+    command: odoo -d odoo-${ODOO_TAG:-fb-11-pipe}

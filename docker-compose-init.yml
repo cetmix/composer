@@ -1,0 +1,44 @@
+version: "3.7"
+
+networks:
+  odoo:
+    name: odoo-${ODOO_TAG:-fb-11-pipe}
+    external: false
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres}:${POSTGRES_TAG:-11}
+    container_name: postgres
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-odoo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-odoo}
+    networks:
+      - odoo
+    volumes:
+      - ${ODOO_DATA:-~/cetmix/data}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "telnet://localhost:5432"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  odoo-init:
+#    build:
+#      context: code/.
+#      dockerfile: ../docker/.
+    image: cetmix/${ODOO_IMAGE:-odoo}:${ODOO_TAG:-fb-11-pipe}
+    container_name: odoo-init-${ODOO_TAG:-fb-11-pipe}
+    environment:
+      HOST:     postgres
+      PORT:     5432
+      USER:     ${POSTGRES_USER:-odoo}
+      PASSWORD: ${POSTGRES_PASSWORD:-odoo}
+    networks:
+      - odoo
+    volumes:
+      - ${ODOO_DATA:-~/cetmix/data}/extra-addons:/mnt/extra-addons
+      - ${ODOO_DATA:-~/cetmix/data}/config:/etc/odoo
+      - ${ODOO_DATA:-~/cetmix/data}/data:/var/lib/odoo
+      - /etc/localtime:/etc/localtime
+    command: odoo ${ODOO_INIT_ARGS} -d odoo-${ODOO_TAG:-fb-11-pipe} --test-enable --stop-after-init
+    depends_on:
+      - postgres
