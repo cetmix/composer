@@ -5,34 +5,42 @@ ACTION=${1:-"up -d"}
 source ./.env
 
 if [ ! -d ${ODOO_DATA} ]; then
+  echo "Create ${ODOO_DATA} folder"
   mkdir -p ${ODOO_DATA}
 fi
 
-#create folders
-for dir in config extra-addons; do
-  mkdir -p ${ODOO_DATA}/${dir}
-done
-
-#copy config
-cp ./configs/odoo.conf ${ODOO_DATA}/config/
-
-#clone code
 if [ "${ACTION}" != "down" ]; then
-  git clone -b ${ODOO_CODE_BRANCH:-fb-11-pipe} git@github.com:cetmix/cetmix-tools.git ./code &> /dev/null
-  git clone -b ${DOCKER_CODE_BRANCH:-master} git@github.com:cetmix/docker.git ./docker &> /dev/null
-fi
 
-export ODOO_INIT_ARGS="-i $(bash ./docker/scripts/addons_list.sh | tr ' ' ',')"
+  #create folders
+  for dir in config extra-addons; do
+    echo "Create ${ODOO_DATA}/${dir} folder"
+    mkdir -p ${ODOO_DATA}/${dir}
+  done
 
-# start postgres and odoo-init
-if [ "${ACTION}" != "down" ]; then
+  #copy config
+  echo "Copy odoo config"
+  cp ./configs/odoo.conf ${ODOO_DATA}/config/
+
+  #clone code
+  echo "Clone cetmix-tools repo"
+  git clone --quiet -b ${ODOO_CODE_BRANCH:-fb-11-pipe} git@github.com:cetmix/cetmix-tools.git ./code
+  echo "Clone docker repo"
+  git clone --quiet -b ${DOCKER_CODE_BRANCH:-master} git@github.com:cetmix/docker.git ./docker
+
+  echo "Get list of addons"
+  export ODOO_INIT_ARGS="-i $(bash ./docker/scripts/addons_list.sh | tr ' ' ',')"
+
+  # start postgres and odoo-init
   docker-compose -f ./docker-compose-init.yml ${ACTION}
-fi
 
-if [ "${ACTION}" != "down" ]; then
   #waiting for odoo init
   echo Waiting for odoo init
   exit_code="$(docker wait odoo-init-${ODOO_TAG:-fb-11-pipe})"
+fi
+
+if [[ "${exit_code}" != "0" && "${ACTION}" != "down" ]]; then
+  echo "Odoo init failed"
+  exit 1
 fi
 
 #check exist status code of odoo init
@@ -41,7 +49,7 @@ if [[ "${exit_code}" == "0" || "${ACTION}" == "down" ]]; then
 fi
 
 #Print odoo URL
-if [ "${ACTION}" != "down" ]; then
+if [[ "${ACTION}" != "down" && "${exit_code}" == "0" ]]; then
   port=$(docker inspect odoo-${ODOO_TAG:-fb-11-pipe} --format '{{(index (index .NetworkSettings.Ports "8069/tcp") 0).HostPort}}')
   echo "URL = http://127.0.0.1:${port}"
 fi
@@ -52,7 +60,8 @@ if [ "${ACTION}" == "down" ]; then
 fi
 
 if [ "${ACTION}" == "down" ]; then
-  rm -rf ${ODOO_DATA:-~/cetmix/data}/*
+  echo "Remove data folders"
+  rm -rf ${ODOO_DATA}/*
   rm -rf ./docker
   rm -rf ./code
 fi
