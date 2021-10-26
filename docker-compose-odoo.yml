@@ -17,6 +17,7 @@ services:
       PORT:     5432
       USER:     ${POSTGRES_USER:-odoo}
       PASSWORD: ${POSTGRES_PASSWORD:-odoo}
+    user: "101:${GID}"
     networks:
       - odoo
     ports:
@@ -24,6 +25,9 @@ services:
     volumes:
       - ${ODOO_DATA:-~/cetmix/data}/extra-addons:/mnt/extra-addons
       - ${ODOO_DATA:-~/cetmix/data}/config:/etc/odoo
-      - ${ODOO_DATA:-~/cetmix/data}/data:/var/lib/odoo
+      - cetmix_data:/var/lib/odoo:rw
       - /etc/localtime:/etc/localtime
     command: odoo -d odoo-${ODOO_TAG:-fb-11-pipe}
+
+volumes:
+  cetmix_data:

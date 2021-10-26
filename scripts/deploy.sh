@@ -4,6 +4,8 @@ ACTION=${1:-"up -d"}
 
 source ./.env
 
+export GID=$(id -g)
+
 if [ ! -d ${ODOO_DATA} ]; then
   echo "Create ${ODOO_DATA} folder"
   mkdir -p ${ODOO_DATA}
@@ -20,7 +22,7 @@ if [ "${ACTION}" != "down" ]; then
   #copy config
   echo "Copy odoo config"
   cp ./configs/odoo.conf ${ODOO_DATA}/config/
-
+  
   #clone code
   echo "Clone cetmix-tools repo"
   git clone --quiet -b ${ODOO_CODE_BRANCH:-fb-11-pipe} git@github.com:cetmix/cetmix-tools.git ./code
@@ -56,7 +58,7 @@ fi
 
 # start postgres and odoo-init
 if [ "${ACTION}" == "down" ]; then
-  docker-compose -f ./docker-compose-init.yml ${ACTION}
+  docker-compose -f ./docker-compose-init.yml ${ACTION} -v
 fi
 
 if [ "${ACTION}" == "down" ]; then
