@@ -15,7 +15,7 @@ services:
     networks:
       - odoo
     volumes:
-      - ${ODOO_DATA:-~/cetmix/data}/postgres:/var/lib/postgresql/data
+      - cetmix_postgres:/var/lib/postgresql/data:rw
     healthcheck:
       test: ["CMD", "curl", "-f", "telnet://localhost:5432"]
       interval: 30s
@@ -34,11 +34,16 @@ services:
       PASSWORD: ${POSTGRES_PASSWORD:-odoo}
     networks:
       - odoo
+    user: "101:${GID}"
     volumes:
       - ${ODOO_DATA:-~/cetmix/data}/extra-addons:/mnt/extra-addons
       - ${ODOO_DATA:-~/cetmix/data}/config:/etc/odoo
-      - ${ODOO_DATA:-~/cetmix/data}/data:/var/lib/odoo
+      - cetmix_data:/var/lib/odoo:rw
       - /etc/localtime:/etc/localtime
     command: odoo ${ODOO_INIT_ARGS} -d odoo-${ODOO_TAG:-fb-11-pipe} --test-enable --stop-after-init
     depends_on:
       - postgres
+
+volumes:
+  cetmix_data:
+  cetmix_postgres:
